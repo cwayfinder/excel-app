@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "outDir": "./built",
+    "allowJs": true,
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "node"
+  },
+  "include": ["./src/**/*"]
+}

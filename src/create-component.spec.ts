@@ -53,7 +53,7 @@ describe('Create a component', () => {
 });
 
 describe('Create multiple components', () => {
-  test.only('user form', () => {
+  test('user form', () => {
     const firstName = createComponent({
       label: `First name`,
       value: `John`,

@@ -1,4 +1,4 @@
-import { interval, map, Observable, Subject } from 'rxjs';
+import { interval, map, Observable } from 'rxjs';
 import { Store } from './store/store';
 import { autorun } from 'mobx';
 
@@ -23,10 +23,14 @@ function prop(componentId: number, name: string): Observable<string> {
   const component = store.components[componentId];
 
   return new Observable<string>((subscriber) => {
-    autorun(() => {
+    const disposer = autorun(() => {
       const propValue = component.props[name];
       subscriber.next(propValue);
     });
+
+    return () => {
+      disposer();
+    }
   });
 }
 

@@ -1,45 +1,69 @@
 import { Excel } from './formula-parser/excel';
-import { combineLatest, distinctUntilChanged, Observable, of, switchMap } from 'rxjs';
 import { ASTNode } from './formula-parser/node';
-import { fromPromise } from 'rxjs/internal/observable/innerFrom';
-import { functions } from './functions';
+import { Func, functions } from './functions';
+import { IObservableValue, observable, onBecomeUnobserved, reaction, runInAction } from 'mobx';
+import { isObservableValue } from './util/is-observable-value';
+import { isPromise } from './util/is-promise';
 
-export function evaluateFormula(formula: string): Observable<string> {
+export function evaluateFormula(formula: string): IObservableValue<string> {
   const excel = new Excel();
   const ast = excel.parse(formula);
-  return watchNode(ast) as Observable<string>;
+
+  return watchNode(ast);
 }
 
-function watchNode(node: ASTNode): Observable<unknown> {
+function watchNode(node: ASTNode): IObservableValue<string> {
   if (node.type === 'function') {
     const funcName = node.name.toLowerCase().replaceAll('_', '');
     const func = functions[funcName];
+    const args = node.args.map((arg) => watchNode(arg));
 
-    return watchNodes(node.args).pipe(
-      switchMap((args) => {
-        console.log(args);
-        const result = func(...args);
+    return watchFunc(args, func);
+  }
 
-        if (result instanceof Observable) {
-          return result;
-        }
-        if (result instanceof Promise) {
-          return fromPromise(result);
-        }
+  if (node.type === 'value') {
+    return observable.box(node.value);
+  }
 
-        return of(result);
-      }),
-    );
-  } else if (node.type === 'value') {
-    return of(node.value);
-  } else if (node.type === 'variable') {
+  if (node.type === 'variable') {
     throw new Error('Variable is not supported');
   }
 
   throw new Error(`Cannot create node. Node: ${JSON.stringify(node)}`);
 }
 
-function watchNodes(nodes: ASTNode[]): Observable<unknown[]> {
-  const observables = nodes.map((node) => watchNode(node).pipe(distinctUntilChanged()));
-  return observables.length === 0 ? of([]) : combineLatest(observables);
+function watchFunc(
+  args: IObservableValue<string>[],
+  fn: Func,
+): IObservableValue<string> {
+  const observer = observable.box<string>();
+
+  const disposer = reaction(() => args.map((arg) => arg.get()), handler, {
+    fireImmediately: true,
+  });
+  onBecomeUnobserved(observer, disposer);
+
+  function handler(values: string[]) {
+    const result = fn(...values);
+
+    if (isPromise(result)) {
+      result.then((r) => runInAction(() => observer.set(r)));
+      return;
+    }
+
+    if (isObservableValue(result)) {
+      const disposer = reaction(
+        () => result.get(),
+        (r) => observer.set(r),
+        {
+          fireImmediately: true,
+        },
+      );
+      onBecomeUnobserved(observer, disposer);
+      return;
+    }
+    observer.set(result);
+  }
+
+  return observer;
 }

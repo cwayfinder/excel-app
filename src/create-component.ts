@@ -1,6 +1,7 @@
 import { Component } from './store/component';
 import { evaluateFormula } from './evaluate-formula';
 import { Store } from './store/store';
+import { autorun } from 'mobx';
 
 let counter = 0;
 
@@ -14,9 +15,9 @@ export function createComponent(schema: Record<string, string>) {
       const formula = propSchema.slice(1);
       const observable = evaluateFormula(formula);
 
-      observable.subscribe((value) => {
-        component.setProp(propName, value);
-      });
+      autorun(() => {  
+        component.setProp(propName, observable.get());
+      })
     } else {
       component.setProp(propName, propSchema);
     }

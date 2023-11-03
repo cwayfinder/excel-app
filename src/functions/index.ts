@@ -1,7 +1,7 @@
 import { IObservableValue } from 'mobx';
 import { concat } from './concat';
 import { fetch } from './fetch';
-import { ticker } from './ticker';
+import { interval } from './interval';
 import { prop } from './prop';
 
 export type Func = (...args: any[]) => string | Promise<string> | IObservableValue<string>;
@@ -9,6 +9,6 @@ export type Func = (...args: any[]) => string | Promise<string> | IObservableVal
 export const functions: Record<string, Func> = {
   concat,
   fetch,
-  ticker,
+  interval,
   prop,
 };

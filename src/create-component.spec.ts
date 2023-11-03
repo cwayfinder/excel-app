@@ -41,8 +41,8 @@ describe('Create a component', () => {
     jest.useFakeTimers();
 
     const component = createComponent({
-      prop1: `=ticker(1000)`,
-      prop2: `=concat(ticker(1000), '-', 'foo')`,
+      prop1: `=interval(1000)`,
+      prop2: `=concat(interval(1000), '-', 'foo')`,
     });
 
     jest.advanceTimersByTime(3000);

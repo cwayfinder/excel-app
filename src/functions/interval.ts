@@ -1,6 +1,6 @@
 import { IObservableValue, observable, onBecomeObserved, onBecomeUnobserved, runInAction } from 'mobx';
 
-export function ticker(interval: number): IObservableValue<string> {
+export function interval(ms: number): IObservableValue<string> {
   const state = observable.box('-1');
   let id: NodeJS.Timeout | null = null;
 
@@ -11,7 +11,7 @@ export function ticker(interval: number): IObservableValue<string> {
         const next = String(current + 1);
         state.set(next);
       });
-    }, interval);
+    }, ms);
   };
 
   const stop = () => {

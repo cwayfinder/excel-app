@@ -1,5 +1,5 @@
 import { Component } from './store/component';
-import { evaluateFormula } from './evaluate-formula';
+import { evaluateFormula } from './formula/evaluate-formula';
 import { store } from './store/store';
 import { autorun } from 'mobx';
 

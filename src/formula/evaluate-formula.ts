@@ -13,8 +13,7 @@ export function evaluateFormula(formula: string): IObservableValue<string> {
 }
 
 function watchFunctionNode(node: ASTFunctionNode): IObservableValue<string> {
-  const funcName = node.name.toLowerCase().replaceAll('_', '');
-  const func = functions[funcName];
+  const func = functions[node.name];
   const args = node.args.map((arg) => watchNode(arg));
 
   const observer = observable.box<string>();

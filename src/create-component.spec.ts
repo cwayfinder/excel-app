@@ -52,6 +52,35 @@ describe('Create a component', () => {
   });
 });
 
+// "concat" is a synchronous function
+// "fetch" is an asynchronous function
+// the result of "concat" is available immediately, but it's incorrect
+// because the result of "fetch" is not available yet
+test('with nested async formula', () => {
+  const component = createComponent({
+    prop1: `=concat(fetch('foo'), '|', fetch('bar'))`,
+  });
+
+  expect(component.props['prop1']).toEqual('|'); // not sure about this line
+  Promise.resolve().then(() => {
+    expect(component.props['prop1']).toEqual('async-data-from-foo|async-data-from-bar');
+  });
+});
+
+test('with nested async formula2', () => {
+  jest.useFakeTimers();
+
+  const component = createComponent({
+    prop1: `=concat(fetch('foo'), '|', interval(1000))`,
+  });
+
+  jest.advanceTimersByTime(3000);
+
+  Promise.resolve().then(() => {
+    expect(component.props['prop1']).toEqual('async-data-from-foo|2');
+  });
+});
+
 describe('Create multiple components', () => {
   test('user form', () => {
     const firstName = createComponent({

@@ -24,21 +24,19 @@ function watchFunctionNode(node: ASTFunctionNode): IObservableValue<string> {
     { fireImmediately: true });
   onBecomeUnobserved(observer, disposer);
 
-  function handler(values: string[]) {
+  function handler(values: string[]): void {
     const result = func(...values);
 
     if (isPromise(result)) {
-      result.then((r) => runInAction(() => observer.set(r)));
+      result.then((value) => runInAction(() => observer.set(value)));
       return;
     }
 
     if (isObservableValue(result)) {
       const disposer = reaction(
         () => result.get(),
-        (r) => observer.set(r),
-        {
-          fireImmediately: true,
-        },
+        (value) => observer.set(value),
+        { fireImmediately: true },
       );
       onBecomeUnobserved(observer, disposer);
       return;

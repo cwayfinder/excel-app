@@ -11,7 +11,9 @@ describe('Create a component', () => {
     expect(component.props['prop2']).toEqual('bar');
   });
 
-  test('with formula', () => {
+  test('with formula', async () => {
+    jest.useFakeTimers()
+
     const component = createComponent({
       prop1: `=concat('foo', '-', 'bar')`,
       prop2: `=fetch('/api/username')`,
@@ -20,24 +22,32 @@ describe('Create a component', () => {
     expect(component.props['prop1']).toEqual('foo-bar');
 
     expect(component.props['prop2']).toBeUndefined();
-    Promise.resolve().then(() => {
-      expect(component.props['prop2']).toEqual('async-data-from-/api/username');
-    });
+    expect(component.propsLoading['prop2']).toEqual(true);
+
+    await jest.runAllTimersAsync()
+
+    expect(component.props['prop2']).toEqual('async-data-from-/api/username');
+    expect(component.propsLoading['prop2']).toEqual(false);
+
   });
 
-  test('with formula returning promise', () => {
+  test('with formula returning promise', async () => {
+    jest.useFakeTimers()
     const component = createComponent({
       prop1: `=fetch('/api/username')`,
     });
 
     expect(component.props['prop1']).toBeUndefined();
+    expect(component.propsLoading['prop1']).toEqual(true);
 
-    Promise.resolve().then(() => {
-      expect(component.props['prop1']).toEqual('async-data-from-/api/username');
-    });
+    await jest.runAllTimersAsync()
+
+    expect(component.props['prop1']).toEqual('async-data-from-/api/username');
+    expect(component.propsLoading['prop1']).toEqual(false);
+
   });
 
-  test('with formula returning observable', () => {
+  test('with formula returning observable',  () => {
     jest.useFakeTimers();
 
     const component = createComponent({
@@ -56,29 +66,31 @@ describe('Create a component', () => {
 // "fetch" is an asynchronous function
 // the result of "concat" is available immediately, but it's incorrect
 // because the result of "fetch" is not available yet
-test('with nested async formula', () => {
+test('with nested async formula', async () => {
+  jest.useFakeTimers();
+
   const component = createComponent({
     prop1: `=concat(fetch('foo'), '|', fetch('bar'))`,
   });
 
   expect(component.props['prop1']).toEqual('|'); // not sure about this line
-  Promise.resolve().then(() => {
-    expect(component.props['prop1']).toEqual('async-data-from-foo|async-data-from-bar');
-  });
+
+  await jest.runAllTimersAsync()
+
+  expect(component.props['prop1']).toEqual('async-data-from-foo|async-data-from-bar');
 });
 
-test('with nested async formula2', () => {
+test('with nested async formula2', async () => {
   jest.useFakeTimers();
 
   const component = createComponent({
     prop1: `=concat(fetch('foo'), '|', interval(1000))`,
   });
 
-  jest.advanceTimersByTime(3000);
+  await jest.advanceTimersByTimeAsync(3000);
 
-  Promise.resolve().then(() => {
-    expect(component.props['prop1']).toEqual('async-data-from-foo|2');
-  });
+  expect(component.props['prop1']).toEqual('async-data-from-foo|2');
+
 });
 
 describe('Create multiple components', () => {

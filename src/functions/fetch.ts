@@ -1,3 +1,7 @@
-export function fetch(url: string): Promise<string> {
-  return Promise.resolve('async-data-from-' + url);
+const delay = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms))
+
+export async function fetch(url: string): Promise<string> {
+  await delay(300)
+  return 'async-data-from-' + url
 }
+

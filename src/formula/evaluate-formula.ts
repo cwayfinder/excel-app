@@ -5,70 +5,70 @@ import { observable, onBecomeUnobserved, reaction, runInAction} from 'mobx';
 import { isObservableValue } from '../util/is-observable-value';
 import { isPromise } from '../util/is-promise';
 
-export function evaluateFormula(formula: string): ResultObserver {
+export function evaluateFormula(formula: string): ResultObservable {
   const excel = new Excel();
   const ast = excel.parse(formula);
 
   return watchNode(ast);
 }
 
-type ResultObserver = { value: string, isLoading: boolean }
+type ResultObservable = { value: string, isLoading: boolean }
 
-function watchFunctionNode(node: ASTFunctionNode): ResultObserver {
+function watchFunctionNode(node: ASTFunctionNode): ResultObservable {
   const func = functions[node.name];
   const args = node.args.map((arg) => watchNode(arg));
 
-  const observer = observable.object<ResultObserver>({value: undefined, isLoading: false});
+  const resultObservable = observable.object<ResultObservable>({value: undefined, isLoading: false});
 
   const disposer = reaction(
     () => args.map((arg) => arg.value),
     handler,
     { fireImmediately: true });
-  onBecomeUnobserved(observer, 'value', disposer);
+  onBecomeUnobserved(resultObservable, 'value', disposer);
 
   function handler(values: string[]): void {
     const result = func(...values);
 
 
     if (isPromise(result)) {
-      observer.isLoading = true
+      resultObservable.isLoading = true
       result
-          .then((value) => runInAction(() => observer.value = value))
-          .finally(() => runInAction(() => observer.isLoading = false))
+          .then((value) => runInAction(() => resultObservable.value = value))
+          .finally(() => runInAction(() => resultObservable.isLoading = false))
       return;
     }
 
     if (isObservableValue(result)) {
       const disposer = reaction(
         () => result.get(),
-        (value) => observer.value = value,
+        (value) => resultObservable.value = value,
         { fireImmediately: true },
       );
-      onBecomeUnobserved(observer, 'value', disposer);
+      onBecomeUnobserved(resultObservable, 'value', disposer);
       return;
     }
 
-    observer.value = result
+    resultObservable.value = result
   }
 
-  return observer;
+  return resultObservable;
 }
 
-function watchValueNode(node: ASTValueNode): ResultObserver {
+function watchValueNode(node: ASTValueNode): ResultObservable {
   return observable.object({value: node.value, isLoading: false})
 }
 
-function watchVariableNode(node: ASTVariableNode): ResultObserver {
+function watchVariableNode(node: ASTVariableNode): ResultObservable {
   throw new Error('Variable is not supported');
 }
 
-const watchers: Record<string, (node: ASTNode) => ResultObserver> = {
+const watchers: Record<string, (node: ASTNode) => ResultObservable> = {
   function: watchFunctionNode,
   value: watchValueNode,
   variable: watchVariableNode,
 };
 
-function watchNode(node: ASTNode): ResultObserver {
+function watchNode(node: ASTNode): ResultObservable {
   const watcher = watchers[node.type];
   if (!watcher) {
     throw new Error(`Cannot create node. Node: ${JSON.stringify(node)}`);
